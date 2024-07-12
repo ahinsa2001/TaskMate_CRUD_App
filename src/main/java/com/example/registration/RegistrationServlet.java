@@ -44,6 +44,7 @@ public class RegistrationServlet extends HttpServlet {
             return;
         }
 
+        // Profile pic upload and save
         String fileName = filePart.getSubmittedFileName();
         String uploadPath = getServletContext().getRealPath("") + File.separator + "uploads";
         File uploadDir = new File(uploadPath);

@@ -30,7 +30,6 @@ public class UpdateTaskServlet extends HttpServlet {
         // Create Task object using constructor for update
         Task task = new Task(taskId, taskName, taskDescription, taskDueDate, status);
 
-        // Business logic
         try {
             taskService.updateTask(task);
             response.sendRedirect("index.jsp");

@@ -39,20 +39,30 @@ public class CreateTaskServlet extends HttpServlet {
             return;
         }
 
+
         // Retrieve form parameters
         String title = request.getParameter("taskName");
         String description = request.getParameter("taskDescription");
         String due_date = request.getParameter("taskDueDate");
         String status = request.getParameter("status");
 
+        try {
+        // Check if task name already exists
+        boolean taskExists = taskService.checkIfTaskExists(title, userId);
+
+        if (taskExists) {
+            // Set error message and forward back to the JSP
+            request.setAttribute("taskNameError", "Task name already exists. Please choose a different name.");
+            request.getRequestDispatcher("index.jsp").forward(request, response);
+            return;
+        }
+
         // Create Task object using constructor
         Task task = new Task(title, description, due_date, userId, status);
 
-        // Business logic
-        try {
-            taskService.createTask(task);
-            // Redirect to index page upon successful insertion
-            response.sendRedirect("index.jsp");
+        taskService.createTask(task);
+        // Redirect to index page upon successful insertion
+        response.sendRedirect("index.jsp");
         } catch (Exception e) {
             e.printStackTrace();
             // Redirect to login page in case of an exception

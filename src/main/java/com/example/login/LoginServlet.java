@@ -16,6 +16,7 @@ import java.io.IOException;
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
     private UserService userService = new UserService();
+    private static final int MAX_ATTEMPTS = 3;
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -27,23 +28,39 @@ public class LoginServlet extends HttpServlet {
         HttpSession session = request.getSession();
         RequestDispatcher dispatcher = null;
 
-        if (uname == null || upwd == null) {
-            request.setAttribute("error", "All fields are required.");
-            dispatcher = request.getRequestDispatcher("login.jsp");
-            dispatcher.forward(request, response);
-            return;
-        }
-
         try {
-            User user = userService.authenticateUser(uname, upwd);
-            if (user != null) {
-                session.setAttribute("user_id", user.getId());
-                session.setAttribute("name", user.getUsername());
-                session.setAttribute("profilePicPath", "uploads/" + user.getProfilePic());
-                dispatcher = request.getRequestDispatcher("index.jsp");
-            } else {
+            User user = userService.getUserByUsername(uname);
+            if (user == null) {
+                // User does not exist
                 request.setAttribute("status", "failed");
                 dispatcher = request.getRequestDispatcher("login.jsp");
+            } else if ("inactive".equals(user.getStatus())) {
+                // Account is inactive
+                request.setAttribute("status", "inactive");
+                dispatcher = request.getRequestDispatcher("login.jsp");
+            } else {
+                // Proceed with authentication
+                if (userService.authenticateUser(uname, upwd)) {
+                    // Successful login, reset the counter and set status to active
+                    userService.resetFailedAttempts(uname);
+                    userService.updateUserStatus(uname, "active");
+                    session.setAttribute("user_id", user.getId());
+                    session.setAttribute("name", user.getUsername());
+                    session.setAttribute("profilePicPath", "uploads/" + user.getProfilePic());
+                    dispatcher = request.getRequestDispatcher("index.jsp");
+                } else {
+                    // Failed login
+                    userService.incrementFailedAttempts(uname);
+                    int attempts = userService.getFailedAttempts(uname);
+                    if (attempts >= MAX_ATTEMPTS) {
+                        userService.updateUserStatus(uname, "inactive");
+                        request.setAttribute("status", "inactive");
+                        dispatcher = request.getRequestDispatcher("login.jsp");
+                    } else {
+                        request.setAttribute("status", "failed");
+                        dispatcher = request.getRequestDispatcher("login.jsp");
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

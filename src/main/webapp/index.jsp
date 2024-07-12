@@ -1,43 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.util.*, java.sql.*" %>
-<%
-    if (session.getAttribute("name") == null) {
-        response.sendRedirect("login.jsp");
-    }
-
-    // Fetch tasks from the database
-    List<Map<String, String>> tasks = new ArrayList<>();
-    try {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/jspCrudDb?useSSL=false", "root", "Lk1aAkOm@AN");
-        String query = "SELECT id, title, description, due_date, status FROM tasks WHERE user_id = ?";
-        PreparedStatement ps = con.prepareStatement(query);
-        ps.setInt(1, (Integer) session.getAttribute("user_id"));
-        ResultSet rs = ps.executeQuery();
-
-        while (rs.next()) {
-            Map<String, String> task = new HashMap<>();
-            task.put("id", rs.getString("id"));
-            task.put("title", rs.getString("title"));
-            task.put("description", rs.getString("description"));
-            task.put("due_date", rs.getString("due_date"));
-            task.put("status", rs.getString("status"));
-            tasks.add(task);
-        }
-        con.close();
-
-        // Sort tasks by due_date
-        tasks.sort((task1, task2) -> {
-            String dueDate1 = task1.get("due_date");
-            String dueDate2 = task2.get("due_date");
-            return dueDate1.compareTo(dueDate2);
-        });
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-
-%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -50,17 +12,23 @@
     <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
+
     <style>
         body {
             background-color: #f8f9fa;
         }
+
+        /* Style nav bar */
         .navbar {
             background-color: #102C57 !important;
             height: 50px;
         }
         .navbar-brand, .nav-link, .nav-item.bg-danger a {
             color: #f8f9fa !important;
+            font-size: 1rem;
         }
+
+        /* Style hero section */
         .hero-section {
             background: url('https://source.unsplash.com/1600x900/?task,management') no-repeat center center;
             background-size: cover;
@@ -97,6 +65,8 @@
         .hero-section p {
             font-size: 0.8rem;
         }
+
+        /* Style task listing view */
         .task-list {
             margin-top: 20px;
             margin-left: 25px;
@@ -161,10 +131,27 @@
             justify-content: center;
             margin-bottom: 20px;
         }
+
+        .semi-nav-container {
+            align-content: center;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin-bottom: -10px;
+            margin-top: 10px;
+        }
+
+        /* Style add task button */
+        .add-btn-title {
+            font-size: 0.8rem;
+            margin-top: 15px;
+        }
         .add-task-button {
             display: flex;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
+            justify-content: left;
+            height: 32px;
             background-color: #ffffff;
             color: #102C57;
             border: none;
@@ -172,6 +159,8 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-left: 300px;
+            margin-top: 18px;
         }
         .add-task-button .button-icon {
             width: 20px;
@@ -179,9 +168,10 @@
             margin-right: 10px;
         }
         .add-task-button:hover {
-            background-color: #E90074;
-            border-color: #E90074;
+            background-color: #102C57;
         }
+
+        /* Style update and delete option */
         .modal-body .btn-primary {
             background-color: #102C57;
         }
@@ -193,6 +183,7 @@
             justify-content: center;
         }
 
+        /* Style username and pro pic in nav bar */
         .navbar-nav .profile-pic-nav {
             width: 32px;
             height: 32px;
@@ -239,12 +230,44 @@
             cursor: not-allowed;
         }
 
+        /* Error message style */
         .error-message {
             color: #FF0000;
             font-size: 10px;
             margin: -3px 0 10px 0;
             text-align: left;
             justify-content: center;
+        }
+
+        /* Search option style */
+        .search-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
+        .search-container input {
+            align-content: center;
+            width: 200px;
+            padding: 10px;
+            border: none;
+            font-size: 0.8rem;
+            color: inherit;
+        }
+        .search-container .search-icon {
+            width: 17px;
+            height: 17px;
+            color: inherit;
+            margin-right: 0px;
+        }
+        .search-container input:focus {
+            outline: none;
+            border: none;
+            border-bottom: 1px solid #a6a6a6;
+        }
+        .search-container:hover input{
+            border: none;
+            border-bottom: 1px solid #a6a6a6;
         }
 
 
@@ -290,48 +313,26 @@
 <div class="task-container mt-5">
     <div class="row">
         <div class="col-lg-12 text-center">
+
+            <div class="semi-nav-container">
+            <div class="search-container text-center mb-3">
+                <img src="search.png" alt="search" class="search-icon">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search tasks by title" onkeyup="filterTasks()">
+            </div>
+
             <div class="button-container">
                 <button class="btn btn-primary mb-3 add-task-button" onclick="showCreateTaskModal()">
-                    <img src="add.png" alt="Add Task" class="button-icon"> Add New Task
+                    <img src="add.png" alt="Add Task" class="button-icon"> <p class="add-btn-title">Add Task</p>
                 </button>
             </div>
-            <div class="task-list">
-                <% for (Map<String, String> task : tasks) { %>
-                <div class="task-item">
-                    <div class="task-details">
-                        <div class="task-title"><%= task.get("title") %></div>
-                        <div class="task-description"><%= task.get("description") %></div>
-                        <div class="task-due-date"><%= task.get("due_date") %></div>
-                    </div>
-                    <div class="task-actions">
-                        <form action="UpdateTaskStatusServlet" method="post" class="mr-2">
-                            <input type="hidden" name="taskId" value="<%= task.get("id") %>">
-
-                            <div class="custom-dropdown">
-                            <select name="status" class="form-control custom-select" onchange="this.form.submit()">
-                                <option value="Pending" <%= "Pending".equals(task.get("status")) ? "selected" : "" %>>Pending</option>
-                                <option value="In Progress" <%= "In Progress".equals(task.get("status")) ? "selected" : "" %>>In Progress</option>
-                                <option value="Completed" <%= "Completed".equals(task.get("status")) ? "selected" : "" %>>Completed</option>
-                            </select>
-                            </div>
-                        </form>
-
-                        <div class="task-actions">
-                            <button class="btn" onclick="showUpdateTaskModal('<%= task.get("id") %>', '<%= task.get("title") %>', '<%= task.get("description") %>', '<%= task.get("due_date") %>', '<%= task.get("status") %>')">
-                                <img src="pen.png" alt="Update">
-                            </button>
-                            <button class="btn" onclick="showDeleteTaskModal('<%= task.get("id") %>')">
-                                <img src="remove.png" alt="Delete">
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-                <% } %>
             </div>
+
+            <div class="task-list"></div>
+            <!-- Task items will be appended here -->
         </div>
     </div>
 </div>
+
 
 <!-- Create Task Modal -->
 <div class="modal fade" id="createTaskModal" tabindex="-1" role="dialog" aria-labelledby="createTaskModalLabel" aria-hidden="true">
@@ -347,17 +348,17 @@
                 <form action="CreateTaskServlet" method="post" onsubmit="return validateCreateTaskForm()">
                     <div class="form-group">
                         <label for="taskName">Task Name</label>
-                        <input type="text" class="form-control" id="taskName" name="taskName" maxlength="20">
+                        <input type="text" class="form-control" id="taskName" name="taskName" maxlength="20" value="<%= request.getAttribute("taskName") != null ? request.getAttribute("taskName") : "" %>">
                         <p class="error-message" id="taskNameError"><%= request.getAttribute("taskNameError") != null ? request.getAttribute("taskNameError") : "" %></p>
                     </div>
                     <div class="form-group">
                         <label for="taskDescription">Task Description</label>
-                        <textarea class="form-control" id="taskDescription" name="taskDescription" rows="3" maxlength="50"></textarea>
+                        <textarea class="form-control" id="taskDescription" name="taskDescription" rows="3" maxlength="50"><%= request.getAttribute("taskDescription") != null ? request.getAttribute("taskDescription") : "" %></textarea>
                         <p class="error-message" id="taskDescriptionError"><%= request.getAttribute("taskDescriptionError") != null ? request.getAttribute("taskDescriptionError") : "" %></p>
                     </div>
                     <div class="form-group">
                         <label for="taskDueDate">Due Date</label>
-                        <input type="date" class="form-control" id="taskDueDate" name="taskDueDate">
+                        <input type="date" class="form-control" id="taskDueDate" name="taskDueDate" value="<%= request.getAttribute("taskDueDate") != null ? request.getAttribute("taskDueDate") : "" %>">
                         <p class="error-message" id="taskDueDateError"><%= request.getAttribute("taskDueDateError") != null ? request.getAttribute("taskDueDateError") : "" %></p>
                     </div>
 
@@ -393,7 +394,7 @@
                     <input type="hidden" id="updateTaskId" name="updateTaskId">
                     <div class="form-group">
                         <label for="updateTaskName">Task Name</label>
-                        <input type="text" class="form-control" id="updateTaskName" name="updateTaskName" maxlength="20">
+                        <input type="text" class="form-control" id="updateTaskName" name="updateTaskName" maxlength="20" readonly>
                         <p class="error-message" id="updateTaskNameError"><%= request.getAttribute("updateTaskNameError") != null ? request.getAttribute("updateTaskNameError") : "" %></p>
                     </div>
                     <div class="form-group">
@@ -446,8 +447,60 @@
     </div>
 </div>
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
+<script>
+    $(document).ready(function() {
+        fetchTasks();
 
+        function fetchTasks() {
+            $.ajax({
+                url: 'tasks',
+                method: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    var taskList = $('.task-list');
+                    taskList.empty();
+                    $.each(data, function(index, task) {
+                        var taskHtml = '<div class="task-item">' +
+                            '<div class="task-details">' +
+                            '<div class="task-title">' + task.title + '</div>' +
+                            '<div class="task-description">' + task.description + '</div>' +
+                            '<div class="task-due-date">' + task.dueDate + '</div>' +
+                            '</div>' +
+                            '<div class="task-actions">' +
+                            '<form action="UpdateTaskStatusServlet" method="post" class="mr-2">' +
+                            '<input type="hidden" name="taskId" value="' + task.id + '">' +
+                            '<div class="custom-dropdown">' +
+                            '<select name="status" class="form-control custom-select" onchange="this.form.submit()">' +
+                            '<option value="Pending"' + (task.status === 'Pending' ? ' selected' : '') + '>Pending</option>' +
+                            '<option value="In Progress"' + (task.status === 'In Progress' ? ' selected' : '') + '>In Progress</option>' +
+                            '<option value="Completed"' + (task.status === 'Completed' ? ' selected' : '') + '>Completed</option>' +
+                            '</select>' +
+                            '</div>' +
+                            '</form>' +
+                            '<div class="task-actions">' +
+                            '<button class="btn" onclick="showUpdateTaskModal(\'' + task.id + '\', \'' + task.title + '\', \'' + task.description + '\', \'' + task.dueDate + '\', \'' + task.status + '\')">' +
+                            '<img src="pen.png" alt="Update">' +
+                            '</button>' +
+                            '<button class="btn" onclick="showDeleteTaskModal(\'' + task.id + '\')">' +
+                            '<img src="remove.png" alt="Delete">' +
+                            '</button>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+                        taskList.append(taskHtml);
+                    });
+                },
+                error: function() {
+                    alert('Failed to fetch tasks.');
+                }
+            });
+        }
+    });
+</script>
+
+<!-- JavaScript for Modals and Task Management -->
 <script>
     function showCreateTaskModal() {
         $('#createTaskModal').modal('show');
@@ -465,6 +518,20 @@
     function showDeleteTaskModal(id) {
         $('#deleteTaskId').val(id);
         $('#deleteTaskModal').modal('show');
+    }
+
+    function filterTasks() {
+        var input = document.getElementById('searchInput').value.toLowerCase();
+        var taskItems = document.getElementsByClassName('task-item');
+
+        Array.from(taskItems).forEach(function(item) {
+            var title = item.getElementsByClassName('task-title')[0].innerText.toLowerCase();
+            if (title.includes(input)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -587,12 +654,31 @@
         document.getElementById(errorId).textContent = "";
     }
 
+
+
 </script>
 
-<!-- Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<!-- jQuery and Bootstrap JavaScript -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+<script>
+    $(document).ready(function() {
+        $('#createTaskModal').on('hidden.bs.modal', function () {
+            $(this).find('form').trigger('reset');
+            $('.error-message').text(''); // Clear error messages
+        });
+
+        <% if (request.getAttribute("taskNameError") != null) { %>
+        $('#createTaskModal').modal('show');
+        <% } %>
+    });
+</script>
+
+
+
 
 </body>
 </html>

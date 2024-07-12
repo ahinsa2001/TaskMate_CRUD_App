@@ -7,6 +7,9 @@ public class User {
     private String email;
     private String password;
     private String profilePic;
+    private String status;
+    private int failedAttempts;
+
 
     public User(String username, String email, String password, String profilePicture) {
         this.username = username;
@@ -72,5 +75,21 @@ public class User {
 
     public void setProfilePic(String profilePic) {
         this.profilePic = profilePic;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
     }
 }

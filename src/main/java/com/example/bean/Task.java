@@ -25,6 +25,11 @@ public class Task {
         this.dueDate = dueDate;
         this.status = status;
     }
+
+    public Task() {
+
+    }
+
     public int getId() {
         return id;
     }

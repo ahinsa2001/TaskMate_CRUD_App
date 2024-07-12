@@ -75,6 +75,7 @@
 </head>
 <body>
 
+
 <input type="hidden" id="status" value="<%= request.getAttribute("status") %>">
 
 <div class="login-container">
@@ -88,7 +89,15 @@
         <input type="submit" value="Login">
     </form>
     <p>Don't have an account? <a href="registration.jsp">Register here</a></p>
+
+    <!-- Reactivation form -->
+    <form action="AccountActivationServlet" method="post" id="reactivationForm" style="display:none;">
+        <input type="hidden" name="username" id="reactivationUsername">
+        <button id="btn" type="submit">Request Account Reactivation</button>
+    </form>
 </div>
+
+
 <!-- JS for alert -->
 <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/sweetalert/dist/sweetalert.css">
@@ -132,9 +141,26 @@
     }
 
     var status = document.getElementById("status").value;
-    if (status === "failed") {
-        swal("Sorry", "Wrong username or password!", "error");
+    if (status) {
+        if (status === "failed") {
+            swal("Sorry", "Wrong username or password!", "error");
+        } else if (status === "inactive") {
+            swal({
+                title: "Account Deactivated",
+                text: "Your account has been deactivated due to multiple failed login attempts! Please contact support or request reactivation.",
+                icon: "error",
+                buttons: ["Cancel", "Request Reactivation"],
+            }).then((willReactivate) => {
+                if (willReactivate) {
+                    document.getElementById('reactivationUsername').value = "<%= request.getParameter("username") %>";
+                    document.getElementById('reactivationForm').submit();
+                }
+            });
+        } else if (status === "activationRequested") {
+            swal("Request Sent", "Your account reactivation request has been sent. Please login again with correct username and password!.", "success");
+        }
     }
+
 </script>
 
 </body>
